@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WORLD CUP — Knockout</title>
+<style>
+/* ============================================================
+   THEME — 흰 배경 · 단색(잉크) · 토토 느낌 0
+   ============================================================ */
+:root{
+  --paper:#ffffff;
+  --bg:#f5f5f2;
+  --ink:#121212;
+  --ink2:#4a4a4a;
+  --muted:#9b9b97;
+  --line:#e6e6e2;
+  --line2:#d4d4cf;
+  --live:#e11d2a;
+  --disp:"Segoe UI","Pretendard","Apple SD Gothic Neo",system-ui,Arial,sans-serif;
+  --kr:"Pretendard","Apple SD Gothic Neo","Malgun Gothic","맑은 고딕",system-ui,sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:var(--kr);color:var(--ink);background:var(--bg);overflow-x:hidden;-webkit-font-smoothing:antialiased}
+.en{font-family:var(--disp);font-weight:800;letter-spacing:.02em}
+/* 시스템 폰트용 디스플레이 굵기 보정 */
+.logo,.kicker,.clock,.head .ey,.ticker .sc,.ticker .min,.ticker .lbl,
+.lm-comp,.lm-team .cd,.lm-vs .score,.lm-vs .min,.badge-live,
+.gtable h3,.gtable .pt,.gtable th,.pcard .st,.pcard .row .sc,.chzzk-card .tv,
+.mb-rh,.mb-champ .nm,.vote-row .pc,.vote-row .cd,.pk-stat b,.cbtn,
+.mini-list .mi .cd,.mini-list .mi .sc,.mini-list .mi .st,.rlabel,.bcode{font-weight:800}
+.kicker,.head .ey,.lm-comp,.pcard .st,.mb-rh,.rlabel{font-weight:700}
+a{color:inherit;text-decoration:none}
+::selection{background:var(--ink);color:#fff}
+
+/* 종이 질감의 미세한 백그라운드 */
+#paper{position:fixed;inset:0;z-index:-5;background:
+  radial-gradient(120vw 80vh at 50% -10%, #ffffff, var(--bg) 60%)}
+
+/* ============================================================
+   가장자리 선수 실루엣 (패럴랙스)
+   ============================================================ */
+#players{position:absolute;inset:0;top:0;z-index:-2;pointer-events:none;overflow:hidden}
+.plyr{position:absolute;opacity:.06;will-change:transform;color:var(--ink)}
+.plyr svg{display:block}
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+header{position:fixed;top:0;left:0;right:0;z-index:60;
+  display:flex;align-items:center;gap:18px;padding:16px clamp(16px,4vw,46px);
+  background:rgba(255,255,255,0);transition:.35s;border-bottom:1px solid transparent}
+header.solid{background:rgba(255,255,255,.86);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+.logo{font-family:var(--disp);font-size:22px;letter-spacing:.04em;display:flex;align-items:center;gap:9px}
+.logo .o{width:14px;height:14px;border:3px solid var(--ink);border-radius:50%;display:inline-block}
+nav.menu{display:flex;gap:4px;margin-left:auto}
+nav.menu a{font-size:13px;font-weight:700;color:var(--ink2);padding:9px 14px;border-radius:999px;transition:.2s;letter-spacing:.01em}
+nav.menu a:hover{color:var(--ink)}
+nav.menu a.on{background:var(--ink);color:#fff}
+/* 치지직 라이브 (글리치) */
+.live-link{display:flex;align-items:center;gap:8px;font-weight:900;font-size:13px;
+  padding:9px 15px;border:1.5px solid var(--ink);border-radius:999px;position:relative;overflow:hidden;
+  transition:.2s;white-space:nowrap}
+.live-link:hover{background:var(--ink);color:#fff}
+.live-link:hover .lv-dot{background:#fff}
+.lv-dot{width:9px;height:9px;border-radius:50%;background:var(--live);
+  box-shadow:0 0 0 0 rgba(225,29,42,.6);animation:beat 1.3s infinite}
+@keyframes beat{0%{box-shadow:0 0 0 0 rgba(225,29,42,.55)}70%{box-shadow:0 0 0 9px rgba(225,29,42,0)}100%{box-shadow:0 0 0 0 rgba(225,29,42,0)}}
+.glitch{position:relative;display:inline-block}
+.glitch::before,.glitch::after{content:attr(data-t);position:absolute;left:0;top:0;width:100%;overflow:hidden;opacity:.85}
+.glitch::before{color:var(--live);animation:gl1 2.6s infinite steps(2)}
+.glitch::after{color:#1aa3ff;animation:gl2 3.1s infinite steps(2)}
+@keyframes gl1{0%,93%,100%{clip-path:inset(0 0 100% 0);transform:translate(0)}94%{clip-path:inset(10% 0 55% 0);transform:translate(-1.5px,0)}97%{clip-path:inset(60% 0 20% 0);transform:translate(1.5px,0)}}
+@keyframes gl2{0%,90%,100%{clip-path:inset(0 0 100% 0);transform:translate(0)}92%{clip-path:inset(40% 0 35% 0);transform:translate(1.5px,0)}96%{clip-path:inset(70% 0 8% 0);transform:translate(-1.5px,0)}}
+
+.clock{font-family:var(--disp);font-size:14px;letter-spacing:.06em;color:var(--ink2);white-space:nowrap}
+
+/* ============================================================
+   HERO  (상단 60vh = 깔끔한 애니메이션 대진표)
+   ============================================================ */
+.hero{min-height:100vh;display:flex;flex-direction:column;position:relative;padding:0 clamp(16px,4vw,46px)}
+.hero-top{height:62vh;min-height:430px;display:flex;flex-direction:column;justify-content:center;align-items:center;padding-top:70px}
+.kicker{font-family:var(--disp);font-size:13px;letter-spacing:.45em;color:var(--muted);margin-bottom:6px;
+  opacity:0;animation:rise .9s .1s forwards}
+.bracket-svg{width:100%;max-width:1100px;max-height:48vh;overflow:visible}
+.bline{fill:none;stroke:var(--ink);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;
+  stroke-dasharray:1400;stroke-dashoffset:1400;animation:draw 1.4s cubic-bezier(.7,0,.3,1) forwards}
+@keyframes draw{to{stroke-dashoffset:0}}
+.blabel{opacity:0;animation:rise .7s forwards}
+.bcode{font-family:var(--disp);font-size:18px;fill:var(--ink)}
+.bname{font-family:var(--kr);font-size:11px;font-weight:500;fill:var(--ink2)}
+.bseed{font-family:var(--disp);font-size:10px;fill:var(--muted)}
+.rlabel{font-family:var(--disp);font-size:11px;letter-spacing:.25em;fill:var(--muted)}
+.champ-mark{opacity:0;animation:rise .8s 1.5s forwards}
+@keyframes rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+/* 애니메이션을 끈 사용자도 콘텐츠가 보이도록 */
+@media (prefers-reduced-motion:reduce){
+  .kicker,.blabel,.champ-mark,.hero-title,.hero-sub,.ticker,.reveal{opacity:1!important;transform:none!important;animation:none!important}
+  .bline{stroke-dashoffset:0!important;animation:none!important}
+}
+
+.hero-bottom{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:24px;
+  text-align:center;padding:20px 0 40px}
+.hero-title{font-family:var(--kr);font-weight:900;font-size:clamp(30px,6vw,68px);line-height:1.0;letter-spacing:-.02em;
+  opacity:0;animation:rise 1s .3s forwards}
+.hero-title em{font-style:normal;color:var(--muted)}
+.hero-sub{color:var(--ink2);max-width:540px;font-size:15px;line-height:1.7;opacity:0;animation:rise 1s .5s forwards}
+/* 라이브 미니 티커 */
+.ticker{display:flex;align-items:center;gap:14px;border:1px solid var(--line2);border-radius:14px;
+  background:var(--paper);padding:12px 18px;box-shadow:0 10px 30px rgba(0,0,0,.05);opacity:0;animation:rise 1s .7s forwards;
+  flex-wrap:wrap;justify-content:center}
+.ticker .lbl{display:flex;align-items:center;gap:7px;font-weight:900;font-size:12px;letter-spacing:.05em}
+.ticker .lbl .lv-dot{width:8px;height:8px}
+.ticker .game{display:flex;align-items:center;gap:10px;font-weight:700;font-size:14px}
+.ticker .sc{font-family:var(--disp);font-size:20px;min-width:18px;text-align:center}
+.ticker .min{font-family:var(--disp);color:var(--live);font-size:13px}
+.ticker .fresh{font-size:11px;color:var(--muted);font-weight:500}
+.ticker .sep{width:1px;height:22px;background:var(--line2)}
+.scrollcue{position:absolute;bottom:22px;left:50%;transform:translateX(-50%);font-size:11px;letter-spacing:.3em;
+  color:var(--muted);font-family:var(--disp);display:flex;flex-direction:column;align-items:center;gap:8px}
+.scrollcue .ln{width:1px;height:34px;background:var(--line2);position:relative;overflow:hidden}
+.scrollcue .ln::after{content:"";position:absolute;top:-50%;left:0;width:100%;height:50%;background:var(--ink);animation:cue 1.8s infinite}
+@keyframes cue{to{top:120%}}
+
+/* ============================================================
+   SECTIONS  (스크롤 페이드 인/아웃)
+   ============================================================ */
+section.block{padding:clamp(60px,11vh,130px) clamp(16px,5vw,46px);position:relative;max-width:1180px;margin:0 auto}
+.head{margin-bottom:42px}
+.head .ey{font-family:var(--disp);font-size:12px;letter-spacing:.4em;color:var(--muted);margin-bottom:10px}
+.head h2{font-weight:900;font-size:clamp(26px,4vw,44px);letter-spacing:-.02em;line-height:1.05}
+.head p{color:var(--ink2);margin-top:12px;max-width:560px;font-size:15px;line-height:1.7}
+
+.reveal{opacity:0;transform:translateY(46px);transition:opacity .9s cubic-bezier(.2,.7,.2,1),transform .9s cubic-bezier(.2,.7,.2,1)}
+.reveal.in{opacity:1;transform:none}
+.reveal.d1{transition-delay:.08s}.reveal.d2{transition-delay:.16s}.reveal.d3{transition-delay:.24s}.reveal.d4{transition-delay:.32s}
+
+/* LIVE NOW */
+.live-wrap{display:grid;grid-template-columns:1.4fr 1fr;gap:22px}
+@media(max-width:820px){.live-wrap{grid-template-columns:1fr}}
+.live-main{border:1px solid var(--line2);border-radius:20px;background:var(--paper);padding:28px;position:relative;overflow:hidden}
+.live-main .badge-live{position:absolute;top:20px;right:22px;display:flex;align-items:center;gap:7px;font-weight:900;font-size:12px}
+.lm-comp{font-family:var(--disp);letter-spacing:.2em;color:var(--muted);font-size:12px;margin-bottom:22px}
+.lm-teams{display:flex;align-items:center;justify-content:center;gap:clamp(10px,4vw,40px)}
+.lm-team{flex:1;text-align:center}
+.lm-team .cd{font-family:var(--disp);font-size:clamp(26px,5vw,44px)}
+.lm-team .nm{color:var(--ink2);font-weight:500;font-size:13px;margin-top:2px}
+.lm-vs{text-align:center}
+.lm-vs .score{font-family:var(--disp);font-size:clamp(40px,9vw,76px);line-height:.9;display:flex;gap:14px}
+.lm-vs .min{font-family:var(--disp);color:var(--live);font-size:14px;margin-top:8px;letter-spacing:.1em}
+.lm-feed{margin-top:24px;border-top:1px solid var(--line);padding-top:16px;min-height:46px;
+  font-size:14px;color:var(--ink2);display:flex;align-items:center;gap:10px}
+.lm-feed .dot{width:6px;height:6px;border-radius:50%;background:var(--live);flex:none}
+.fresh-row{display:flex;align-items:center;gap:8px;margin-top:14px;font-size:12px;color:var(--muted)}
+.fresh-row .bar{flex:1;height:3px;background:var(--line);border-radius:2px;overflow:hidden}
+.fresh-row .bar i{display:block;height:100%;background:var(--live);width:100%;transform-origin:left;animation:drain 1s linear infinite}
+@keyframes drain{from{transform:scaleX(1)}to{transform:scaleX(0)}}
+
+.live-side{display:flex;flex-direction:column;gap:14px}
+.chzzk-card{border:1.5px solid var(--ink);border-radius:20px;padding:24px;background:var(--ink);color:#fff;position:relative;overflow:hidden}
+.chzzk-card .tv{font-family:var(--disp);font-size:34px;letter-spacing:.04em;line-height:1}
+.chzzk-card p{color:#bdbdbd;font-size:13px;margin:10px 0 18px;line-height:1.6}
+.chzzk-card .go{display:inline-flex;align-items:center;gap:9px;background:#fff;color:var(--ink);
+  font-weight:900;font-size:13px;padding:11px 18px;border-radius:999px;transition:.2s}
+.chzzk-card .go:hover{transform:translateX(4px)}
+.chzzk-card .noise{position:absolute;inset:0;opacity:.07;pointer-events:none;
+  background-image:repeating-linear-gradient(0deg,#fff 0 1px,transparent 1px 3px);animation:noise .2s steps(2) infinite}
+@keyframes noise{to{background-position:0 3px}}
+.mini-list{border:1px solid var(--line2);border-radius:20px;background:var(--paper);overflow:hidden}
+.mini-list .mi{display:flex;align-items:center;gap:10px;padding:13px 18px;font-size:13px;border-bottom:1px solid var(--line)}
+.mini-list .mi:last-child{border-bottom:none}
+.mini-list .mi .cd{font-family:var(--disp);font-size:13px;width:34px}
+.mini-list .mi .nm{flex:1;color:var(--ink2);font-weight:500}
+.mini-list .mi .sc{font-family:var(--disp)}
+.mini-list .mi .st{font-size:10px;color:var(--live);font-weight:900;letter-spacing:.08em}
+.mini-list .mi .st.f{color:var(--muted)}
+
+/* GROUPS */
+.gtables{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:18px}
+.gtable{border:1px solid var(--line2);border-radius:16px;background:var(--paper);padding:16px 18px}
+.gtable h3{font-family:var(--disp);font-size:14px;letter-spacing:.15em;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.gtable h3 b{background:var(--ink);color:#fff;width:24px;height:24px;border-radius:7px;display:grid;place-items:center;font-size:13px}
+.gtable table{width:100%;border-collapse:collapse;font-size:13px}
+.gtable th{font-weight:700;color:var(--muted);font-size:10px;text-align:center;padding:4px 2px;font-family:var(--disp);letter-spacing:.05em}
+.gtable td{text-align:center;padding:8px 2px;border-top:1px solid var(--line)}
+.gtable td.tm{text-align:left;font-weight:700;display:flex;align-items:center;gap:7px}
+.gtable td.tm .rk{font-family:var(--disp);color:var(--muted);width:14px;font-size:12px}
+.gtable tr.q td{font-weight:900}
+.gtable tr.q td.tm{position:relative}
+.gtable tr.q td.tm::before{content:"";position:absolute;left:-18px;top:6px;bottom:6px;width:3px;background:var(--ink)}
+.gtable .pt{font-family:var(--disp)}
+
+/* PAST */
+.past-filter{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:24px}
+.fchip{font-size:13px;font-weight:700;padding:8px 15px;border:1px solid var(--line2);border-radius:999px;
+  background:var(--paper);cursor:pointer;transition:.2s;color:var(--ink2)}
+.fchip:hover{border-color:var(--ink)}
+.fchip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.past-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.pcard{border:1px solid var(--line2);border-radius:14px;background:var(--paper);padding:18px;position:relative;transition:.25s}
+.pcard:hover{border-color:var(--ink);transform:translateY(-3px)}
+.pcard .st{font-family:var(--disp);font-size:10px;letter-spacing:.18em;color:var(--muted);margin-bottom:14px}
+.pcard .row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.pcard .row .tm{display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px}
+.pcard .row .tm .cd{font-family:var(--disp);color:var(--muted);font-size:13px;width:34px}
+.pcard .row .sc{font-family:var(--disp);font-size:22px}
+.pcard .row.w .tm{color:var(--ink)}
+.pcard .row.l .tm{color:var(--muted)}
+.pcard .mid{height:1px;background:var(--line);margin:10px 0}
+
+/* ============================================================
+   체험존 — 화면을 밀고 돌려서 옆으로 (3D 회전 캐러셀)
+   ============================================================ */
+.exp{background:var(--ink);color:#fff;padding:clamp(60px,10vh,120px) 0;overflow:hidden;position:relative}
+.exp .head{max-width:1180px;margin:0 auto 36px;padding:0 clamp(16px,5vw,46px)}
+.exp .head .ey{color:#7d7d7d}
+.exp .head h2{color:#fff}
+.exp .head p{color:#bdbdbd}
+.exp-stage{position:relative;height:min(640px,80vh);perspective:1700px;touch-action:pan-y}
+.cpanel{position:absolute;top:0;left:50%;width:min(700px,88vw);height:100%;
+  margin-left:calc(min(700px,88vw) / -2);
+  background:var(--paper);color:var(--ink);border-radius:24px;overflow:hidden;
+  box-shadow:0 40px 80px rgba(0,0,0,.45);
+  transition:transform .8s cubic-bezier(.22,.61,.36,1),opacity .6s;backface-visibility:hidden;
+  display:flex;flex-direction:column}
+.cpanel .pn-head{padding:22px 26px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;flex:none}
+.cpanel .pn-head .no{font-family:var(--disp);font-size:13px;color:var(--muted);letter-spacing:.1em}
+.cpanel .pn-head h3{font-size:19px;font-weight:900}
+.cpanel .pn-head p{font-size:12px;color:var(--ink2);margin-left:auto;max-width:230px;text-align:right;line-height:1.4}
+.cpanel .pn-body{flex:1;overflow:auto;padding:22px 26px}
+
+.exp-ctrl{max-width:1180px;margin:30px auto 0;padding:0 clamp(16px,5vw,46px);
+  display:flex;align-items:center;justify-content:center;gap:18px}
+.cbtn{width:52px;height:52px;border-radius:50%;border:1.5px solid #555;background:transparent;color:#fff;
+  font-size:20px;cursor:pointer;transition:.2s;display:grid;place-items:center}
+.cbtn:hover{background:#fff;color:var(--ink);border-color:#fff}
+.cdots{display:flex;gap:10px}
+.cdot{width:9px;height:9px;border-radius:50%;background:#555;cursor:pointer;transition:.25s}
+.cdot.on{background:#fff;width:26px;border-radius:6px}
+.drag-hint{text-align:center;color:#7d7d7d;font-size:12px;margin-top:16px;letter-spacing:.05em}
+
+/* 패널 내부 : 예측 브래킷 */
+.mini-bracket{display:flex;gap:26px;min-width:560px}
+.mb-round{display:flex;flex-direction:column;justify-content:space-around;gap:10px;flex:1;min-width:120px}
+.mb-rh{font-family:var(--disp);font-size:10px;letter-spacing:.15em;color:var(--muted);text-align:center;margin-bottom:4px}
+.mb-match{border:1px solid var(--line2);border-radius:10px;overflow:hidden}
+.mb-slot{display:flex;align-items:center;gap:8px;padding:8px 10px;font-size:13px;cursor:pointer;transition:.15s}
+.mb-slot+.mb-slot{border-top:1px solid var(--line)}
+.mb-slot:hover{background:var(--bg)}
+.mb-slot .cd{font-family:var(--disp);font-size:12px;color:var(--muted);width:30px}
+.mb-slot .nm{flex:1;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mb-slot.win{background:var(--ink);color:#fff}
+.mb-slot.win .cd{color:#fff}
+.mb-slot.win::after{content:"›";font-family:var(--disp);font-size:18px}
+.mb-slot.empty{color:var(--muted);cursor:default;font-style:italic}
+.mb-slot.empty:hover{background:transparent}
+.mb-champ{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-width:120px}
+.mb-champ .cup{font-size:30px}
+.mb-champ .nm{font-family:var(--disp);font-size:18px}
+.mb-champ small{color:var(--muted);font-size:11px}
+.mb-actions{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}
+.sbtn{font-size:13px;font-weight:800;padding:9px 16px;border-radius:999px;border:1.5px solid var(--ink);
+  background:var(--paper);cursor:pointer;transition:.2s}
+.sbtn.fill{background:var(--ink);color:#fff}
+.sbtn:hover{transform:translateY(-2px)}
+
+/* 패널 내부 : 투표 (단색 막대) */
+.vote-row{display:grid;grid-template-columns:90px 1fr 44px;align-items:center;gap:12px;margin:14px 0;cursor:pointer}
+.vote-row .nm{font-weight:700;font-size:13px}
+.vote-row .nm .cd{font-family:var(--disp);color:var(--muted);font-size:11px;margin-right:5px}
+.vbar{height:10px;background:var(--line);border-radius:6px;overflow:hidden}
+.vbar i{display:block;height:100%;background:var(--ink);width:0;border-radius:6px;transition:width .8s cubic-bezier(.2,.8,.2,1)}
+.vote-row .pc{font-family:var(--disp);font-size:14px;text-align:right}
+.vote-row:hover .nm{color:#000}
+.vote-row:hover .vbar i{background:var(--live)}
+.vtotal{margin-top:18px;font-size:12px;color:var(--muted);display:flex;justify-content:space-between;align-items:center}
+
+/* 패널 내부 : 페널티킥 */
+.pk{display:flex;flex-direction:column;align-items:center;gap:16px}
+.pk-goal{position:relative;width:100%;max-width:380px;height:160px;border:3px solid var(--ink);border-bottom:none;
+  border-radius:6px 6px 0 0;background:
+   repeating-linear-gradient(90deg,transparent 0 22px,var(--line) 22px 23px),
+   repeating-linear-gradient(0deg,transparent 0 22px,var(--line) 22px 23px)}
+.pk-net{position:absolute;inset:0}
+.gk{position:absolute;bottom:6px;left:50%;width:46px;height:60px;transform:translateX(-50%);
+  transition:left .3s cubic-bezier(.3,1.5,.5,1)}
+.ball{position:absolute;bottom:-44px;left:50%;width:26px;height:26px;border-radius:50%;
+  border:2px solid var(--ink);background:#fff;transform:translateX(-50%);transition:all .5s cubic-bezier(.4,1.2,.5,1)}
+.ball::before{content:"";position:absolute;inset:5px;border-radius:50%;background:var(--ink);opacity:.12}
+.pk-btns{display:flex;gap:10px;width:100%;max-width:380px}
+.pkb{flex:1;padding:13px 0;border:1.5px solid var(--ink);border-radius:12px;background:var(--paper);
+  font-weight:900;font-size:14px;cursor:pointer;transition:.18s}
+.pkb:hover:not(:disabled){background:var(--ink);color:#fff}
+.pkb:disabled{opacity:.35;cursor:default}
+.pk-stat{display:flex;gap:26px;font-weight:700;font-size:14px}
+.pk-stat b{font-family:var(--disp);font-size:22px;margin-left:6px}
+.pk-msg{font-weight:900;min-height:24px;text-align:center;font-size:15px}
+
+footer{text-align:center;padding:50px 20px 70px;color:var(--muted);font-size:12px;line-height:1.9;background:var(--bg)}
+footer code{background:#ececea;padding:2px 7px;border-radius:5px;color:var(--ink2);font-size:11px}
+footer a{text-decoration:underline}
+
+#toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(40px);
+  background:var(--ink);color:#fff;font-weight:800;font-size:14px;padding:12px 22px;border-radius:999px;
+  opacity:0;transition:.35s;z-index:200;pointer-events:none;box-shadow:0 16px 40px rgba(0,0,0,.25)}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+@media(max-width:680px){
+  nav.menu{display:none}
+  .hero-top{height:54vh}
+  .live-main{padding:20px}
+}
+</style>
+</head>
+<body>
+<div id="paper"></div>
+<div id="players"></div>
+
+<!-- ===================== HEADER ===================== -->
+<header id="hdr">
+  <div class="logo"><span class="o"></span>WORLD&nbsp;CUP</div>
+  <nav class="menu" id="menu">
+    <a href="#hero" class="on">HOME</a>
+    <a href="#live">LIVE</a>
+    <a href="#groups">GROUPS</a>
+    <a href="#past">RESULTS</a>
+    <a href="#exp">PLAY</a>
+  </nav>
+  <span class="clock" id="clock">--:--:--</span>
+  <a class="live-link" href="https://chzzk.naver.com" target="_blank" rel="noopener">
+    <span class="lv-dot"></span><span class="glitch" data-t="치지직 LIVE">치지직 LIVE</span>
+  </a>
+</header>
+
+<!-- ===================== HERO ===================== -->
+<section class="hero" id="hero">
+  <div class="hero-top">
+    <div class="kicker">KNOCKOUT&nbsp;&nbsp;STAGE</div>
+    <svg class="bracket-svg" id="heroSvg" viewBox="0 0 1100 560" preserveAspectRatio="xMidYMid meet"></svg>
+  </div>
+  <div class="hero-bottom">
+    <h1 class="hero-title">세계가 하나의 공을 향해.<br><em>16강부터 결승까지, 한 화면에서.</em></h1>
+    <p class="hero-sub">실시간 스코어 · 조별리그 순위 · 지난 경기 기록, 그리고 당신이 직접 돌려보는 토너먼트 예측까지.</p>
+    <div class="ticker" id="ticker"></div>
+  </div>
+  <div class="scrollcue"><span>SCROLL</span><span class="ln"></span></div>
+</section>
+
+<!-- ===================== LIVE ===================== -->
+<section class="block" id="live">
+  <div class="head reveal">
+    <div class="ey">REAL-TIME · 초저지연</div>
+    <h2>지금, 라이브.</h2>
+    <p>가장 빠른 실시간 정보. 골 · 카드 · 교체가 즉시 반영되고, 더 빠르게 보고 싶다면 치지직 생중계로 바로 연결됩니다.</p>
+  </div>
+  <div class="live-wrap">
+    <div class="live-main reveal" id="liveMain"></div>
+    <div class="live-side">
+      <a class="chzzk-card reveal d1" href="https://chzzk.naver.com" target="_blank" rel="noopener">
+        <div class="noise"></div>
+        <div class="tv glitch" data-t="치 지 직">치 지 직</div>
+        <p>치직— 끊김 없는 초저지연 생중계.<br>지금 바로 풀 매치를 시청하세요.</p>
+        <span class="go">치지직에서 생중계 보기 →</span>
+      </a>
+      <div class="mini-list reveal d2" id="miniList"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== GROUPS ===================== -->
+<section class="block" id="groups">
+  <div class="head reveal">
+    <div class="ey">GROUP STAGE</div>
+    <h2>조별리그 순위</h2>
+    <p>각 조 상위 2팀이 16강에 진출합니다. 진출 팀은 왼쪽 굵은 라인으로 표시됩니다.</p>
+  </div>
+  <div class="gtables" id="gtables"></div>
+</section>
+
+<!-- ===================== PAST ===================== -->
+<section class="block" id="past">
+  <div class="head reveal">
+    <div class="ey">RESULTS</div>
+    <h2>지난 경기</h2>
+    <p>종료된 경기 기록. 조별로 필터링해 다시 살펴보세요.</p>
+  </div>
+  <div class="past-filter reveal" id="pastFilter"></div>
+  <div class="past-grid" id="pastGrid"></div>
+</section>
+
+<!-- ===================== EXPERIENCE (3D) ===================== -->
+<section class="exp" id="exp">
+  <div class="head reveal">
+    <div class="ey">PLAY · 직접 체험</div>
+    <h2>밀고, 돌려서 즐기세요.</h2>
+    <p>드래그하거나 화살표를 눌러 옆으로 넘기면 패널이 회전합니다. 직접 예측하고, 투표하고, 슛을 차보세요.</p>
+  </div>
+  <div class="exp-stage" id="stage">
+    <!-- PANEL 1 : 예측 -->
+    <div class="cpanel">
+      <div class="pn-head"><span class="no">01</span><h3>토너먼트 예측</h3>
+        <p>이길 팀을 클릭하면 다음 라운드로 진출합니다. 자동 저장돼요.</p></div>
+      <div class="pn-body">
+        <div class="mb-actions">
+          <button class="sbtn fill" id="autoFill">⚡ 랜덤 자동완성</button>
+          <button class="sbtn" id="resetBracket">↺ 초기화</button>
+        </div>
+        <div style="overflow-x:auto;margin-top:16px;padding-bottom:10px">
+          <div class="mini-bracket" id="miniBracket"></div>
+        </div>
+      </div>
+    </div>
+    <!-- PANEL 2 : 투표 -->
+    <div class="cpanel">
+      <div class="pn-head"><span class="no">02</span><h3>우승 팬 투표</h3>
+        <p>당신의 우승 후보에 한 표. 실시간 집계.</p></div>
+      <div class="pn-body">
+        <div id="voteBox"></div>
+        <div class="vtotal"><span id="vtotal">총 0표</span><span>팀을 눌러 투표</span></div>
+      </div>
+    </div>
+    <!-- PANEL 3 : 페널티 -->
+    <div class="cpanel">
+      <div class="pn-head"><span class="no">03</span><h3>페널티킥 슛아웃</h3>
+        <p>골키퍼의 반대로 차면 골! 5번의 기회.</p></div>
+      <div class="pn-body">
+        <div class="pk">
+          <div class="pk-goal">
+            <svg class="gk" id="gk" viewBox="0 0 46 60"></svg>
+            <div class="ball" id="ball"></div>
+          </div>
+          <div class="pk-btns">
+            <button class="pkb" data-dir="0">◀ 왼쪽</button>
+            <button class="pkb" data-dir="1">▲ 중앙</button>
+            <button class="pkb" data-dir="2">오른쪽 ▶</button>
+          </div>
+          <div class="pk-stat"><span>득점<b id="pkG">0</b></span><span>시도<b id="pkT">0</b>/5</span></div>
+          <div class="pk-msg" id="pkMsg">방향을 선택하세요</div>
+          <button class="sbtn" id="pkReset" style="display:none">다시 도전 🔁</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="exp-ctrl">
+    <button class="cbtn" id="cPrev">‹</button>
+    <div class="cdots" id="cdots"></div>
+    <button class="cbtn" id="cNext">›</button>
+  </div>
+  <div class="drag-hint">← 드래그하거나 화살표로 넘기세요 →</div>
+</section>
+
+<footer>
+  WORLD CUP — 데모용 샘플 데이터로 동작합니다.<br>
+  실시간 실제 연동: <code>fetchLiveData()</code> 에 <code>football-data.org</code> · <code>API-Football</code> 키를 연결하면 라이브 스코어/순위가 자동 갱신됩니다.<br>
+  생중계: <a href="https://chzzk.naver.com" target="_blank" rel="noopener">치지직(Chzzk)</a>
+</footer>
+
+<div id="toast"></div>
+
+<script>
+/* ============================================================
+   DATA  (실제 API 연동 시 이 부분만 교체)
+   ============================================================ */
+const T={
+ QAT:["카타르"],ECU:["에콰도르"],SEN:["세네갈"],NED:["네덜란드"],
+ ENG:["잉글랜드"],IRN:["이란"],USA:["미국"],WAL:["웨일스"],
+ ARG:["아르헨티나"],KSA:["사우디"],MEX:["멕시코"],POL:["폴란드"],
+ FRA:["프랑스"],AUS:["호주"],DEN:["덴마크"],TUN:["튀니지"],
+ ESP:["스페인"],CRC:["코스타리카"],GER:["독일"],JPN:["일본"],
+ BEL:["벨기에"],CAN:["캐나다"],MAR:["모로코"],CRO:["크로아티아"],
+ BRA:["브라질"],SRB:["세르비아"],SUI:["스위스"],CMR:["카메룬"],
+ POR:["포르투갈"],GHA:["가나"],URU:["우루과이"],KOR:["대한민국"]
+};
+const nm=c=>T[c]?T[c][0]:"미정";
+const GROUPS={
+ A:[["NED",3,2,1,0,5,1,7],["SEN",3,2,0,1,5,4,6],["ECU",3,1,1,1,4,3,4],["QAT",3,0,0,3,1,7,0]],
+ B:[["ENG",3,2,1,0,9,2,7],["USA",3,1,2,0,2,1,5],["IRN",3,1,0,2,4,7,3],["WAL",3,0,1,2,1,6,1]],
+ C:[["ARG",3,2,0,1,5,2,6],["POL",3,1,1,1,2,2,4],["MEX",3,1,1,1,2,3,4],["KSA",3,1,0,2,3,5,3]],
+ D:[["FRA",3,2,0,1,6,3,6],["AUS",3,2,0,1,3,4,6],["TUN",3,1,1,1,1,1,4],["DEN",3,0,1,2,1,3,1]],
+ E:[["JPN",3,2,0,1,4,3,6],["ESP",3,1,1,1,9,3,4],["GER",3,1,1,1,6,5,4],["CRC",3,1,0,2,3,11,3]],
+ F:[["MAR",3,2,1,0,4,1,7],["CRO",3,1,2,0,4,1,5],["BEL",3,1,1,1,1,2,4],["CAN",3,0,0,3,2,7,0]],
+ G:[["BRA",3,2,0,1,3,1,6],["SUI",3,2,0,1,4,3,6],["CMR",3,1,1,1,4,4,4],["SRB",3,0,1,2,5,8,1]],
+ H:[["POR",3,2,0,1,6,4,6],["KOR",3,1,1,1,4,4,4],["URU",3,1,1,1,2,2,4],["GHA",3,1,0,2,5,7,3]]
+};
+const R16=[["NED","USA"],["ARG","AUS"],["JPN","CRO"],["BRA","KOR"],
+           ["ENG","SEN"],["FRA","POL"],["MAR","ESP"],["POR","SUI"]];
+const PAST=[
+ ["ARG",1,2,"KSA","C"],["ARG",2,0,"MEX","C"],["POL",2,0,"KSA","C"],
+ ["JPN",2,1,"GER","E"],["ESP",7,0,"CRC","E"],["JPN",1,2,"ESP","E"],
+ ["KOR",2,1,"POR","H"],["POR",3,2,"GHA","H"],["KOR",0,0,"URU","H"],
+ ["ENG",6,2,"IRN","B"],["ENG",0,0,"USA","B"],["FRA",4,1,"AUS","D"],
+ ["MAR",2,0,"BEL","F"],["BRA",2,0,"SRB","G"],["MAR",0,0,"CRO","F"],
+ ["NED",2,0,"QAT","A"],["SEN",2,1,"ECU","A"],["CMR",1,0,"BRA","G"]
+];
+let LIVE=[
+ {h:"ARG",a:"NED",sh:1,sa:1,min:67,comp:"QUARTER-FINAL",feed:"⚽ 73' 몰리나 → 메시 패스 컷"},
+ {h:"BRA",a:"CRO",sh:0,sa:0,min:23,comp:"QUARTER-FINAL",feed:"경기 진행 중"},
+ {h:"MAR",a:"POR",sh:1,sa:0,min:54,comp:"QUARTER-FINAL",feed:"⚽ 42' 엔네시리 헤더골"}
+];
+
+/* ============================================================
+   HELPERS
+   ============================================================ */
+const $=(s,e=document)=>e.querySelector(s);
+const $$=(s,e=document)=>[...e.querySelectorAll(s)];
+function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),2000);}
+
+/* ============================================================
+   선수 실루엣 (가장자리 패럴랙스)
+   ============================================================ */
+function silhouette(pose){
+  // 굵은 라운드 스트로크 = 모던 단색 실루엣
+  const figs={
+    run:`<circle cx="100" cy="48" r="25" fill="currentColor"/>
+         <path d="M100 76 L100 200 M100 96 L150 70 M100 96 L52 140 M100 200 L142 268 L150 332 M100 200 L60 262 L54 332"
+           fill="none" stroke="currentColor" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"/>`,
+    kick:`<circle cx="96" cy="50" r="25" fill="currentColor"/>
+         <path d="M96 78 L92 196 M96 98 L150 116 M96 98 L46 92 M92 196 L70 300 L66 350 M92 196 L150 232 L196 196"
+           fill="none" stroke="currentColor" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"/>
+         <circle cx="206" cy="200" r="16" fill="currentColor"/>`,
+    dive:`<circle cx="70" cy="70" r="25" fill="currentColor"/>
+         <path d="M70 96 L210 150 M120 116 L150 70 M120 116 L90 64 M210 150 L250 110 M210 150 L255 190"
+           fill="none" stroke="currentColor" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"/>`,
+    cheer:`<circle cx="100" cy="48" r="25" fill="currentColor"/>
+         <path d="M100 76 L100 210 M100 100 L150 50 M100 100 L52 50 M100 210 L70 330 M100 210 L132 330"
+           fill="none" stroke="currentColor" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"/>`
+  };
+  return `<svg viewBox="0 0 280 380" width="100%" height="100%">${figs[pose]}</svg>`;
+}
+function buildPlayers(){
+  const box=$("#players");
+  const docH=Math.max(document.body.scrollHeight,3000);
+  // [좌/우, top%, 너비px, pose, parallax속도]
+  const defs=[
+    ["L", 0.04,150,"kick", .18],
+    ["R", 0.10,170,"cheer",.10],
+    ["L", 0.32,160,"run",  .26],
+    ["R", 0.46,180,"dive", .15],
+    ["L", 0.62,150,"cheer",.22],
+    ["R", 0.74,170,"kick", .12],
+    ["L", 0.88,160,"run",  .20]
+  ];
+  box.innerHTML=defs.map((d,i)=>{
+    const[s,top,w,pose,sp]=d;
+    const side=s==="L"?`left:-26px`:`right:-26px`;
+    const flip=s==="R"?`transform:scaleX(-1)`:``;
+    return `<div class="plyr" data-sp="${sp}" style="${side};top:${top*100}%;width:${w}px;height:${w*1.35}px;${flip}">
+      ${silhouette(pose)}</div>`;
+  }).join("");
+}
+
+/* ============================================================
+   HERO BRACKET (애니메이션 단색 트리)
+   ============================================================ */
+function heroBracket(){
+  const svg=$("#heroSvg");
+  const rounds=[
+    ["NED","ARG","CRO","BRA","ENG","FRA","MAR","POR"],
+    ["ARG","CRO","FRA","MAR"],
+    ["ARG","FRA"],
+    ["ARG"]
+  ];
+  const colC=[140,420,690,910];
+  const ys=[];
+  ys[0]=rounds[0].map((_,k)=>60+k*64);
+  for(let r=1;r<4;r++) ys[r]=rounds[r].map((_,k)=>(ys[r-1][2*k]+ys[r-1][2*k+1])/2);
+  let paths="",labels="",heads="";
+  const RN=["ROUND OF 8","SEMI","FINAL",""];
+  for(let r=1;r<4;r++){
+    const sx=colC[r-1]+74, ex=colC[r]-74, mx=(sx+ex)/2;
+    rounds[r].forEach((_,k)=>{
+      const y0=ys[r-1][2*k], y1=ys[r-1][2*k+1], py=ys[r][k];
+      const d=`M${sx} ${y0} H${mx} M${sx} ${y1} H${mx} M${mx} ${y0} V${y1} M${mx} ${py} H${ex}`;
+      paths+=`<path class="bline" d="${d}" style="animation-delay:${.3+r*.32}s"/>`;
+    });
+  }
+  for(let r=0;r<4;r++){
+    heads+=`<text class="rlabel" x="${colC[r]}" y="26" text-anchor="middle">${["ROUND OF 8","SEMI-FINAL","FINAL","CHAMPION"][r]}</text>`;
+    rounds[r].forEach((code,k)=>{
+      const x=colC[r], y=ys[r][k], dly=.2+r*.32+k*.04;
+      labels+=`<g class="blabel" style="animation-delay:${dly}s">
+        <circle cx="${x-58}" cy="${y-3}" r="3.4" fill="#121212"/>
+        <text class="bcode" x="${x-48}" y="${y+1}">${code}</text>
+        <text class="bname" x="${x-48}" y="${y+15}">${nm(code)}</text></g>`;
+    });
+  }
+  // 우승 마크
+  const cx=colC[3], cy=ys[3][0];
+  const champ=`<g class="champ-mark" transform="translate(${cx+40},${cy})">
+     <path d="M-15 -24 H15 V-14 C15 -3 8 3 0 3 C-8 3 -15 -3 -15 -14 Z" fill="none" stroke="#121212" stroke-width="2"/>
+     <path d="M-15 -20 C-27 -20 -27 -7 -14 -9" fill="none" stroke="#121212" stroke-width="2"/>
+     <path d="M15 -20 C27 -20 27 -7 14 -9" fill="none" stroke="#121212" stroke-width="2"/>
+     <line x1="0" y1="3" x2="0" y2="13" stroke="#121212" stroke-width="2"/>
+     <line x1="-11" y1="15" x2="11" y2="15" stroke="#121212" stroke-width="2" stroke-linecap="round"/>
+     <text class="bname" x="0" y="34" text-anchor="middle" style="font-weight:700">우승</text></g>`;
+  svg.innerHTML=heads+paths+labels+champ;
+}
+
+/* ============================================================
+   TICKER + LIVE + 실시간(가장 빠르게)
+   ============================================================ */
+let freshT=0;
+function renderTicker(){
+  const m=LIVE[0];
+  $("#ticker").innerHTML=`
+    <span class="lbl"><span class="lv-dot"></span>LIVE</span>
+    <span class="sep"></span>
+    <span class="game"><b class="en">${m.h}</b><span class="sc">${m.sh}</span>
+      <span style="color:var(--muted)">:</span><span class="sc">${m.sa}</span><b class="en">${m.a}</b></span>
+    <span class="min">${m.min}'</span>
+    <span class="sep"></span>
+    <span class="fresh">갱신 ${freshT.toFixed(1)}s 전</span>`;
+}
+function renderLive(){
+  const m=LIVE[0], fin=m.min>=90;
+  $("#liveMain").innerHTML=`
+    <div class="badge-live"><span class="lv-dot"></span>${fin?'FT':'LIVE'}</div>
+    <div class="lm-comp">${m.comp}</div>
+    <div class="lm-teams">
+      <div class="lm-team"><div class="cd">${m.h}</div><div class="nm">${nm(m.h)}</div></div>
+      <div class="lm-vs"><div class="score"><span>${m.sh}</span><span style="color:var(--muted)">:</span><span>${m.sa}</span></div>
+        <div class="min">${fin?'경기 종료':m.min+"'"}</div></div>
+      <div class="lm-team"><div class="cd">${m.a}</div><div class="nm">${nm(m.a)}</div></div>
+    </div>
+    <div class="lm-feed"><span class="dot"></span><span id="feedTxt">${m.feed}</span></div>
+    <div class="fresh-row"><span>실시간 동기화</span><span class="bar"><i></i></span><span id="freshTxt">방금</span></div>`;
+  // 사이드 미니리스트
+  $("#miniList").innerHTML=LIVE.map(g=>{
+    const f=g.min>=90;
+    return `<div class="mi"><span class="cd">${g.h}</span><span class="nm">${nm(g.h)} v ${nm(g.a)}</span>
+      <span class="sc">${g.sh}-${g.sa}</span><span class="st ${f?'f':''}">${f?'FT':g.min+"'"}</span></div>`;
+  }).join("");
+}
+const SCORERS=["메시","음바페","손흥민","호날두","모드리치","네이마르","케인","페드리","주앙 펠릭스"];
+function simLive(){
+  freshT=0;
+  LIVE.forEach(m=>{
+    if(m.min>=90)return;
+    m.min++;
+    if(Math.random()<.05){
+      const home=Math.random()<.5; home?m.sh++:m.sa++;
+      const who=SCORERS[Math.floor(Math.random()*SCORERS.length)];
+      m.feed=`⚽ ${m.min}' ${who} 골! · ${m.h} ${m.sh}-${m.sa} ${m.a}`;
+      toast(`⚽ GOAL — ${nm(home?m.h:m.a)}`);
+    }else if(Math.random()<.04){
+      m.feed=["🟨 옐로카드","🔁 선수 교체","📐 코너킥","🧤 선방!","오프사이드 판정"][Math.floor(Math.random()*5)]+` · ${m.min}'`;
+    }
+  });
+  renderTicker();renderLive();
+}
+renderTicker();renderLive();
+setInterval(simLive,1000);           // ← 가장 빠른 갱신(1s)
+setInterval(()=>{                    // 신선도 카운터
+  freshT+=0.1;
+  const ft=$("#freshTxt"); if(ft)ft.textContent=freshT<1?"방금":freshT.toFixed(1)+"s 전";
+  const tk=$(".ticker .fresh"); if(tk)tk.textContent=`갱신 ${freshT.toFixed(1)}s 전`;
+},100);
+// 실제 API 연동 예시
+async function fetchLiveData(){
+  /* const r=await fetch("https://api.football-data.org/v4/matches?status=LIVE",
+       {headers:{"X-Auth-Token":"YOUR_KEY"}});
+     const d=await r.json();
+     LIVE=d.matches.map(x=>({h:x.homeTeam.tla,a:x.awayTeam.tla,
+       sh:x.score.fullTime.home,sa:x.score.fullTime.away,min:x.minute,comp:x.stage,feed:""}));
+     renderLive();renderTicker(); */
+}
+
+/* ============================================================
+   GROUPS
+   ============================================================ */
+function renderGroups(){
+  $("#gtables").innerHTML=Object.entries(GROUPS).map(([g,rows],gi)=>`
+   <div class="gtable reveal d${(gi%4)+1}">
+     <h3><b>${g}</b>GROUP ${g}</h3>
+     <table>
+      <tr><th style="text-align:left">TEAM</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GD</th><th>PT</th></tr>
+      ${rows.map((r,i)=>{const[c,p,w,d,l,gf,ga,pt]=r,gd=gf-ga;
+        return `<tr class="${i<2?'q':''}"><td class="tm"><span class="rk">${i+1}</span>${nm(c)}</td>
+          <td>${p}</td><td>${w}</td><td>${d}</td><td>${l}</td>
+          <td>${gd>0?'+':''}${gd}</td><td class="pt">${pt}</td></tr>`}).join("")}
+     </table></div>`).join("");
+  bindReveal();
+}
+
+/* ============================================================
+   PAST
+   ============================================================ */
+function renderPast(f="ALL"){
+  const stages=["ALL",...new Set(PAST.map(p=>p[4]))];
+  $("#pastFilter").innerHTML=stages.map(s=>
+    `<button class="fchip ${s===f?'on':''}" onclick="renderPast('${s}')">${s==="ALL"?"전체":"조 "+s}</button>`).join("");
+  const list=PAST.filter(p=>f==="ALL"||p[4]===f);
+  $("#pastGrid").innerHTML=list.map(([h,sh,sa,a,st],i)=>{
+    const hw=sh>sa,aw=sa>sh;
+    return `<div class="pcard reveal d${(i%4)+1}">
+      <div class="st">GROUP ${st}</div>
+      <div class="row ${hw?'w':aw?'l':''}"><span class="tm"><span class="cd">${h}</span>${nm(h)}</span><span class="sc">${sh}</span></div>
+      <div class="mid"></div>
+      <div class="row ${aw?'w':hw?'l':''}"><span class="tm"><span class="cd">${a}</span>${nm(a)}</span><span class="sc">${sa}</span></div>
+    </div>`}).join("");
+  bindReveal();
+}
+window.renderPast=renderPast;
+
+/* ============================================================
+   예측 브래킷 (패널 1)
+   ============================================================ */
+const RNAMES=["16강","8강","4강","결승"];
+let bracket=loadBracket();
+function blank(){return[R16.map(([a,b])=>({a,b,w:null})),
+  Array.from({length:4},()=>({a:null,b:null,w:null})),
+  Array.from({length:2},()=>({a:null,b:null,w:null})),
+  [{a:null,b:null,w:null}]];}
+function loadBracket(){try{const s=JSON.parse(localStorage.getItem("wc2"));if(s&&s[0]&&s[0].length===8)return s;}catch(e){}return blank();}
+function saveB(){localStorage.setItem("wc2",JSON.stringify(bracket));}
+window.pick=function(r,m,wh){
+  const mt=bracket[r][m], w=wh==="a"?mt.a:mt.b;
+  if(!w||mt.w===w)return;
+  mt.w=w; propagate(r,m); saveB(); renderBracket();
+  if(r===3) celebrate(w);
+};
+function propagate(r,m){
+  if(r>=3)return;
+  const nr=r+1,nmx=Math.floor(m/2),slot=m%2===0?"a":"b",w=bracket[r][m].w,nx=bracket[nr][nmx];
+  if(nx[slot]!==w){nx[slot]=w; if(nx.w!==null){nx.w=null; clr(nr,nmx);}}
+}
+function clr(r,m){if(r>=3)return;const nr=r+1,nmx=Math.floor(m/2),slot=m%2===0?"a":"b";
+  if(bracket[nr][nmx][slot]!==null)bracket[nr][nmx][slot]=null;
+  if(bracket[nr][nmx].w!==null){bracket[nr][nmx].w=null;clr(nr,nmx);}}
+function slotH(r,m,wh){
+  const c=bracket[r][m][wh];
+  if(!c)return `<div class="mb-slot empty">미정</div>`;
+  const win=bracket[r][m].w===c;
+  return `<div class="mb-slot ${win?'win':''}" onclick="pick(${r},${m},'${wh}')">
+    <span class="cd">${c}</span><span class="nm">${nm(c)}</span></div>`;
+}
+function renderBracket(){
+  let h="";
+  for(let r=0;r<4;r++){
+    h+=`<div class="mb-round"><div class="mb-rh">${RNAMES[r]}</div>`;
+    bracket[r].forEach((mt,m)=>h+=`<div class="mb-match">${slotH(r,m,"a")}${slotH(r,m,"b")}</div>`);
+    h+=`</div>`;
+  }
+  const ch=bracket[3][0].w;
+  h+=`<div class="mb-champ"><div class="mb-rh">우승</div><div class="cup">🏆</div>
+     ${ch?`<div class="nm">${ch}</div><small>${nm(ch)}</small>`:`<div class="nm">?</div><small>결승 승자 선택</small>`}</div>`;
+  $("#miniBracket").innerHTML=h;
+}
+$("#resetBracket").onclick=()=>{bracket=blank();saveB();renderBracket();toast("초기화 완료 ↺");};
+$("#autoFill").onclick=()=>{bracket=blank();
+  for(let r=0;r<4;r++)bracket[r].forEach((mt,m)=>{const o=[mt.a,mt.b].filter(Boolean);
+    if(o.length===2){mt.w=o[Math.floor(Math.random()*2)];propagate(r,m);}});
+  saveB();renderBracket();toast("⚡ 자동완성!");celebrate(bracket[3][0].w);};
+
+/* ============================================================
+   투표 (패널 2)
+   ============================================================ */
+const VT=["ARG","BRA","FRA","ENG","ESP","POR","NED","KOR"];
+let votes=JSON.parse(localStorage.getItem("wcv2")||"null")||Object.fromEntries(VT.map(c=>[c,Math.floor(Math.random()*50)+15]));
+function renderVote(){
+  const tot=Object.values(votes).reduce((a,b)=>a+b,0);
+  $("#voteBox").innerHTML=VT.map(c=>{const p=tot?Math.round(votes[c]/tot*100):0;
+    return `<div class="vote-row" onclick="castVote('${c}')">
+      <span class="nm"><span class="cd">${c}</span>${nm(c)}</span>
+      <span class="vbar"><i style="width:${p}%"></i></span><span class="pc">${p}%</span></div>`}).join("");
+  $("#vtotal").textContent=`총 ${tot.toLocaleString()}표`;
+}
+window.castVote=function(c){votes[c]++;localStorage.setItem("wcv2",JSON.stringify(votes));renderVote();toast(`🗳️ ${nm(c)} +1`);};
+
+/* ============================================================
+   페널티 (패널 3)
+   ============================================================ */
+$("#gk").innerHTML=silhouette("dive").replace('viewBox="0 0 280 380"','viewBox="0 0 280 380" style="color:#121212"');
+let pkG=0,pkT=0,pkOver=false;
+const gkX=["18%","50%","82%"],blX=["22%","50%","78%"];
+$$(".pkb").forEach(b=>b.onclick=()=>shoot(+b.dataset.dir,b));
+function shoot(dir){
+  if(pkOver)return; pkT++;
+  const save=Math.floor(Math.random()*3),scored=dir!==save;
+  $("#gk").style.left=gkX[save];
+  const ball=$("#ball"); ball.style.left=blX[dir]; ball.style.bottom="120px";
+  setTimeout(()=>{
+    if(scored){pkG++;$("#pkMsg").textContent="⚽ 골인!";$("#pkMsg").style.color="var(--ink)";toast("⚽ GOAL!");}
+    else{$("#pkMsg").textContent="🧤 선방!";$("#pkMsg").style.color="var(--live)";}
+    $("#pkG").textContent=pkG;$("#pkT").textContent=pkT;
+    setTimeout(()=>{ball.style.bottom="-44px";ball.style.left="50%";$("#gk").style.left="50%";},650);
+    if(pkT>=5){pkOver=true;$$(".pkb").forEach(b=>b.disabled=true);
+      setTimeout(()=>{$("#pkMsg").style.color="var(--ink)";
+        $("#pkMsg").textContent=`종료! 5개 중 ${pkG}골 — ${pkG>=4?"🌟 월드클래스":pkG>=2?"👍 굿":"💪 분발"}`;
+        $("#pkReset").style.display="inline-block"; if(pkG>=4)confetti();},760);}
+  },420);
+}
+$("#pkReset").onclick=()=>{pkG=pkT=0;pkOver=false;$("#pkG").textContent=0;$("#pkT").textContent=0;
+  $("#pkMsg").textContent="방향을 선택하세요";$("#pkMsg").style.color="var(--ink)";
+  $("#pkReset").style.display="none";$$(".pkb").forEach(b=>b.disabled=false);};
+
+/* ============================================================
+   3D 캐러셀 (밀고 돌려서 옆으로)
+   ============================================================ */
+const stage=$("#stage"),panels=$$(".cpanel",stage);
+let ci=0;
+function clayout(){
+  panels.forEach((p,i)=>{const o=i-ci,a=Math.abs(o);
+    p.style.transform=`translateX(${o*46}%) translateZ(${-a*260}px) rotateY(${o*-34}deg)`;
+    p.style.opacity=a>1?0:1; p.style.zIndex=10-a; p.style.pointerEvents=o===0?"auto":"none";});
+  $$(".cdot").forEach((d,i)=>d.classList.toggle("on",i===ci));
+}
+function cgo(i){ci=Math.max(0,Math.min(panels.length-1,i));clayout();}
+$("#cdots").innerHTML=panels.map((_,i)=>`<span class="cdot ${i?'':'on'}" onclick="cgo(${i})"></span>`).join("");
+window.cgo=cgo;
+$("#cNext").onclick=()=>cgo(ci+1);
+$("#cPrev").onclick=()=>cgo(ci-1);
+// 드래그 / 스와이프
+let dx0=null;
+stage.addEventListener("pointerdown",e=>{dx0=e.clientX;});
+window.addEventListener("pointerup",e=>{if(dx0===null)return;const d=e.clientX-dx0;
+  if(Math.abs(d)>55){d<0?cgo(ci+1):cgo(ci-1);} dx0=null;});
+// 키보드 (체험존이 보일 때)
+let expVisible=false;
+window.addEventListener("keydown",e=>{if(!expVisible)return;
+  if(e.key==="ArrowRight")cgo(ci+1); if(e.key==="ArrowLeft")cgo(ci-1);});
+
+/* ============================================================
+   CLOCK / 카운트다운
+   ============================================================ */
+function clock(){const n=new Date(),p=x=>String(x).padStart(2,"0");$("#clock").textContent=`${p(n.getHours())}:${p(n.getMinutes())}:${p(n.getSeconds())}`;}
+setInterval(clock,1000);clock();
+
+/* ============================================================
+   confetti (단색 종이조각)
+   ============================================================ */
+function confetti(){const cs=["#121212","#888","#bbb","#e11d2a"];
+  for(let i=0;i<70;i++){const c=document.createElement("div");
+    c.style.cssText=`position:fixed;top:-10px;left:${Math.random()*100}vw;width:8px;height:12px;z-index:300;
+      background:${cs[i%cs.length]};border-radius:2px;pointer-events:none`;
+    document.body.appendChild(c);
+    c.animate([{top:"-10px",transform:`rotate(0)`,opacity:1},{top:"105vh",transform:`rotate(${720*(Math.random()-.5)}deg)`,opacity:.9}],
+      {duration:1800+Math.random()*1600,easing:"cubic-bezier(.3,.6,.4,1)"});
+    setTimeout(()=>c.remove(),3400);}
+}
+let lastCh=null;
+function celebrate(c){if(c&&c!==lastCh){confetti();toast(`🏆 우승 예측: ${nm(c)}`);lastCh=c;}}
+
+/* ============================================================
+   스크롤 효과 : 헤더 / 페이드 / 패럴랙스 / 스크롤스파이
+   ============================================================ */
+let io;
+function bindReveal(){
+  if(!io)io=new IntersectionObserver(es=>es.forEach(e=>e.target.classList.toggle("in",e.isIntersecting)),{threshold:.12});
+  $$(".reveal:not([data-io])").forEach(el=>{el.setAttribute("data-io","1");io.observe(el);});
+}
+// 체험존 가시성(키보드 제어용)
+new IntersectionObserver(es=>es.forEach(e=>expVisible=e.isIntersecting),{threshold:.3}).observe($("#exp"));
+// 스크롤스파이
+const secs=["hero","live","groups","past","exp"].map(id=>$("#"+id));
+const spy=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){
+  const id=e.target.id;$$("#menu a").forEach(a=>a.classList.toggle("on",a.getAttribute("href")==="#"+id));}}),{threshold:.4});
+secs.forEach(s=>spy.observe(s));
+
+let ticking=false;
+function onScroll(){
+  const y=window.scrollY;
+  $("#hdr").classList.toggle("solid",y>40);
+  if(!ticking){requestAnimationFrame(()=>{
+    $$(".plyr").forEach(p=>{p.style.transform=(p.style.transform.includes("scaleX(-1)")?"scaleX(-1) ":"")+`translateY(${-y*p.dataset.sp}px)`;});
+    ticking=false;});ticking=true;}
+}
+window.addEventListener("scroll",onScroll,{passive:true});
+
+/* ============================================================
+   INIT
+   ============================================================ */
+buildPlayers();
+heroBracket();
+renderGroups();
+renderPast();
+renderBracket();
+renderVote();
+clayout();
+bindReveal();
+onScroll();
+</script>
+</body>
+</html>
